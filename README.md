@@ -190,6 +190,60 @@ class SiameseResolver(nn.Module):
 
 ***
 
+## 🛠️ Module-by-Module Breakdown
+
+### 1. `data` — The Foundation
+This is where you handle the "dirty work." By isolating this, you ensure that your models receive clean, standardized inputs regardless of whether the log is from an Android device or an Apache server.
+* **Key Task:** Converting LogHub's raw text and CSV templates into **BIO-tagged sequences** ($B-TIME, I-TIME, O$).
+* **Innovation Proof:** This module creates the **Shared Vocabulary** that proves logs have a "common underlying grammar."
+
+### 2. `chunker` — The "Brain" (Bi-LSTM-CRF)
+This is your primary neural innovation. Keeping it separate allows you to experiment with different architectures (like adding a Character-CNN) without touching the data loading or batching logic.
+* **Technical Edge:** By using a **CRF (Conditional Random Field)** layer here, you move beyond simple classification to "sequence optimization," which is a high-tier NLP technique.
+
+
+### 3. `siamese` — The "Safety Net" (Similarity)
+This module implements the **Metric Learning** aspect of your proposal. It takes the embeddings from the chunker and maps them into a vector space.
+* **Key Task:** Building the **Template Library**. You store the "ideal" vectors for known log types here.
+* **Innovation Proof:** This is your solution for "unseen" logs, proving the system is robust and not just a memorization engine.
+
+
+### 4. `engine` — The "Heart" (Batching & JSON)
+This is where your **Hyperparameter-Driven Batching** lives. This module is the "conductor" that coordinates the chunker and the resolver.
+* **Key Task:** Implementing the logic: *If Chunker Confidence < Threshold, then call Siamese Resolver.*
+* **JSON Serialization:** It gathers the predicted entities and wraps them into the structured JSON format you defined.
+
+### 5. `monitor` — The "Proof" (MLOps)
+In an M.Tech project, the results are as important as the code. This module tracks your experiments.
+* **Key Task:** Using **MLflow** to plot the "Batch Size vs. Throughput" graph.
+* **Innovation Proof:** It provides the empirical data to show your professor exactly how your hyperparameters affect system performance.
+
+---
+
+## 📂 Recommended Directory Structure
+To keep your implementation clean, I suggest the following folder layout:
+
+```text
+omni-log/
+├── data/
+│   ├── raw/                # Original LogHub files
+│   ├── processed/          # BIO-tagged tensors
+│   └── loader.py           # Dataset & DataLoader classes
+├── chunker/
+│   ├── model.py            # Bi-LSTM-CRF class
+│   └── train.py            # Chunker training script
+├── siamese/
+│   ├── encoder.py          # Vector embedding logic
+│   └── resolver.py         # Similarity & Template library
+├── engine/
+│   ├── batch_config.py     # Hyperparameter settings
+│   └── pipeline.py         # The main 'process_logs' logic
+└── monitor/
+    ├── metrics.py          # PA and F1-Score calculations
+    └── mlflow_utils.py     # Experiment tracking
+```
+
+
 ## 🖥 How to run (CLI outline)
 
 ```bash
@@ -230,20 +284,4 @@ python engine.py \
 
 ***
 
-## 🎓 Why OMNI‑LOG is a strong M.Tech project
 
-- **Complexity**:  
-  - Multi‑task Bi‑LSTM‑CRF + Siamese vector resolver implemented from scratch. [aclanthology](https://aclanthology.org/P16-1101.pdf)
-- **Innovation**:
-  - Cross‑domain log structuring with shared entity labels and template‑based similarity. [aclanthology](https://aclanthology.org/P16-1101.pdf)
-- **Performance**:
-  - Batching engine lets you analyze **throughput**, **latency**, and **memory** vs `batch_size`.  
-- **No LLM dependency**:
-  - Fully explainable, reproducible, and grounded in classical NLP / metric‑learning.  
-
-***
-
-Would you like me to next generate:
-
-- A **per‑module README** (e.g., `src/chunker/README.md`, `src/siamese/README.md`, `src/engine/README.md`), or  
-- A **detailed JSON schema** for the structured output (which you can later expose via FastAPI if you want)?
