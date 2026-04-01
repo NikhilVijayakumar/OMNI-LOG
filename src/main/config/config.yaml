@@ -1,0 +1,24 @@
+project:
+  name: "omni-log"
+  version: "1.0.0"
+
+pipeline:
+  phase: "data"  # options: data, train, all
+
+paths:
+  raw_logs: "data/logs"
+  processed_dir: "output/processed"
+  model_dir: "output/models/chunker"
+  output_json: "output/json/structured_logs.json"
+
+preprocessing:
+  max_seq_len: 64
+  min_freq: 1
+
+train:
+  batch_size: 32
+  epochs: 1
+  lr: 0.001
+
+  hidden_dim: 256
+  embedding_dim: 128

@@ -216,3 +216,12 @@ __marimo__/
 .streamlit/secrets.toml
 /.idea/.gitignore
 /.idea/vcs.xml
+/.idea/inspectionProfiles/profiles_settings.xml
+/.idea/misc.xml
+/.idea/modules.xml
+/.idea/OMNI-LOG.iml
+/mlruns/1/331c2c8468cf4012ac461c75f8c10edd/artifacts/best_model.pth
+/mlruns/1/30972f801a5e413b981b7f7e93f2057d/artifacts/best_model.pth
+/output/models/chunker/best_model.pth
+/output/processed/vocab.pth
+/mlflow.db
