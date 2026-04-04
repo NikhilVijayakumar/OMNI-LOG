@@ -1,3 +1,4 @@
+# src\features\data\constants.py
 """
 Constants and Configuration for OMNI-LOG Data Preprocessing.
 Defines the shared semantic space and domain-specific log profiles.

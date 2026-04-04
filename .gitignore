@@ -225,3 +225,4 @@ __marimo__/
 /output/models/chunker/best_model.pth
 /output/processed/vocab.pth
 /mlflow.db
+/.idea/inspectionProfiles/Project_Default.xml
