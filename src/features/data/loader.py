@@ -4,7 +4,7 @@ import os
 import pandas as pd
 import torch
 from torch.utils.data import Dataset, DataLoader
-from .processor import LogProcessor
+from features.data.processor import LogProcessor
 
 
 class LogDataset(Dataset):
@@ -68,10 +68,31 @@ def get_dataloader(data_dir, batch_size=32, max_seq_len=64):
 
         if os.path.exists(log_file):
             if os.path.exists(temp_file):
-                # Load from CSV if available
                 df = pd.read_csv(temp_file)
-                logs = df['Content'].tolist()
-                templates = df['EventTemplate'].tolist()
+
+                # 1. Identify the 'Logs' column (The raw message)
+                possible_content = ['Content', 'LogMessage', 'OriginalLog']
+                content_col = next((c for c in possible_content if c in df.columns), None)
+
+                if not content_col:
+                    # Filter out the known non-content columns
+                    other_cols = [c for c in df.columns if c.strip() not in ['EventId', 'LineId', 'EventTemplate']]
+
+                    if other_cols:
+                        content_col = other_cols[0]
+                    else:
+                        # Emergency Fallback: If only EventId/Template exist,
+                        # we have to use EventTemplate as the content to avoid a crash.
+                        print(f"⚠️ Warning: No raw content column found in {domain}. Columns: {list(df.columns)}")
+                        content_col = 'EventTemplate'
+
+                        # 2. Identify the 'Templates' column
+                template_col = 'EventTemplate' if 'EventTemplate' in df.columns else df.columns[-1]
+
+                print(f"--- Processing {domain}: Content='{content_col}', Template='{template_col}'")
+
+                logs = df[content_col].astype(str).tolist()
+                templates = df[template_col].astype(str).tolist()
             else:
                 # Fallback: Load raw log file
                 with open(log_file, 'r', encoding='utf-8', errors='ignore') as f:

@@ -177,7 +177,7 @@ Batching parameters allow tuning for:
 ## 🛠️ Installation
 
 ```bash
-pip install torch torchcrf scikit-learn pandas mlflow dvc
+pip install -e .
 ```
 
 ---

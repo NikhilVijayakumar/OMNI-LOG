@@ -13,6 +13,11 @@ class LogProcessor:
             r'[:\(\)\[\]=]|'  # Structural punctuation
             r'\S+'  # Catch-all for remaining non-whitespace
         )
+        """
+        example
+        2026-04-05 07:56:46 INFO [HDFS.DataNode] Receiving block blk_101
+        ['2026-04-05', '07:56:46', 'INFO', '[', 'HDFS.DataNode', ']', 'Receiving', 'block', 'blk_101']
+        """
 
         # Semantic Tag Mapping
         self.tag2idx = {
