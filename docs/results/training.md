@@ -1,15 +1,39 @@
 # OMNI-LOG Training Results
 
+> **See also:**
+> - [Preprocessing Pipeline](preprocessing.md) — tokenization, BIO tag generation, vocab building
+> - [Theoretical Background](theory.md) — BiLSTM, CRF, Siamese, Triplet Loss, BIO tagging, references
+
+---
+
+## Pipeline Artifact Flow
+
+| Phase | Produces |
+|-------|----------|
+| Preprocessing (`data`) | `output/processed/vocab.pth` — universal token vocabulary (17,067 entries) |
+| Training (`train`) | `output/models/chunker/best_model.pth` — BiLSTM-CRF weights + vocab + tag map |
+| Training (`train`) | `output/models/chunker/siamese_encoder.pth` — Siamese encoder weights |
+| Inference (`inference`) | `output/json/<domain>.jsonl` — structured parsed log records |
+
+---
+
 ## Chunker (BiLSTM-CRF)
 
+**Architecture:** `BiLSTM-CRF` — Embedding (128-dim) → Bidirectional LSTM (256-dim hidden) → Linear projection → CRF (Viterbi decode at inference)
+
 **Hyperparameters:**
-- embedding_dim: 128
-- hidden_dim: 256
-- learning_rate: 0.001
-- epochs: 10
-- batch_size: 32
-- optimizer: Adam (gradient clip 5.0)
-- train/val split: 80/20 (seed=42)
+
+| Parameter | Value | Notes |
+|-----------|-------|-------|
+| `embedding_dim` | 128 | Token embedding size |
+| `hidden_dim` | 256 | 128 per direction (bidirectional) |
+| `learning_rate` | 0.001 | Adam optimizer |
+| `epochs` | 10 | Full passes over training set |
+| `batch_size` | 32 | Logs per gradient step |
+| `optimizer` | Adam | Gradient clip max_norm=5.0 |
+| `train/val split` | 80/20 | `random_split` with seed=42 |
+| `dropout` | 0.1 | Applied after LSTM output |
+| `num_layers` | 1 | Single BiLSTM layer |
 
 **Loss Curves:**
 
@@ -36,12 +60,18 @@
 
 ## Siamese Encoder
 
+**Architecture:** Shared `LogEncoder` (Embedding → BiLSTM → Masked Mean Pool → L2 Normalize) used in a Siamese configuration with Triplet Loss training.
+
 **Hyperparameters:**
-- embedding_dim: 64
-- hidden_dim: 128
-- learning_rate: 0.001
-- epochs: 3
-- loss: TripletMarginLoss (margin=1.0)
+
+| Parameter | Value | Notes |
+|-----------|-------|-------|
+| `embedding_dim` | 64 | Shared embedding size |
+| `hidden_dim` | 128 | 64 per direction |
+| `learning_rate` | 1e-4 | Adam optimizer |
+| `epochs` | 3 | Triplet training passes |
+| `loss` | TripletMarginLoss | margin=1.0, p=2 (Euclidean) |
+| `negative mining` | Random | Any non-matching template sampled per anchor |
 
 **Loss Curve:**
 
@@ -58,6 +88,18 @@
 - Loss drops rapidly, indicating the encoder learns to separate different templates quickly
 - Triplet mining with random negative sampling is effective
 - Training for more epochs would likely improve further
+
+---
+
+## Training Infrastructure
+
+- **Experiment tracking:** MLflow — runs logged under `OMNI-LOG-Chunker` and `OMNI-LOG-Siamese`
+- **Artifacts logged:** model checkpoints, hyperparameters, per-epoch metrics
+- **Device:** CPU (CUDA used automatically if available)
+- **Reproducibility seeds:** `torch.manual_seed(42)`, `numpy.random.seed(42)`, `random.seed(42)`
+- **MLflow run data:** stored locally in `mlruns/` directory
+
+---
 
 ## Inference Performance
 

@@ -285,6 +285,19 @@ pytest tests/integration/test_end_to_end.py -v # Full pipeline
 ## 📈 Experiment Tracking
 
 * **MLflow** → hyperparameter tuning & performance tracking (runs saved to `mlruns/`)
+  ```bash
+  # Launch the MLflow UI to browse experiments and runs
+  mlflow ui --backend-store-uri sqlite:///mlflow.db
+  ```
+  Then open `http://localhost:5000` in your browser.
+  
+  Alternatively, query results programmatically:
+  ```python
+  import mlflow
+  mlflow.set_tracking_uri("sqlite:///mlflow.db")
+  df = mlflow.search_runs(experiment_names=["<experiment_name>"])
+  print(df)
+  ```
 * **DVC** → dataset versioning
 
 ---

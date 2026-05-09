@@ -233,3 +233,4 @@ __marimo__/
 /docs/ppt/initial/Pipeline for Multi-Category Log Structuring and Configurable JSON Batching.pdf
 /docs/ppt/
 /.claude/settings.local.json
+/mlruns/

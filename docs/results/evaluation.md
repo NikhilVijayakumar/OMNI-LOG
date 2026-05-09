@@ -1,5 +1,12 @@
 # OMNI-LOG Evaluation Results
 
+> **See also:**
+> - [Preprocessing Pipeline](preprocessing.md) — how BIO tags are generated and what they mean
+> - [Theoretical Background](theory.md) — BiLSTM-CRF, Siamese Networks, BIO tagging, Triplet Loss
+> - [Training Results](training.md) — hyperparameters, loss curves, artifact paths
+
+---
+
 ## Parsing Accuracy
 
 | Domain     | Accuracy |
@@ -77,3 +84,18 @@ similarity_threshold: 0.85
 3. Entity-level F1 is above 0.95 for all entity types
 4. Inference throughput exceeds 200 logs/sec on CPU, sufficient for real-time processing at moderate scale
 5. The hybrid architecture (chunker + siamese fallback) provides robust handling of confidence-based routing
+
+---
+
+## Evaluation Methodology
+
+**Parsing accuracy** is measured as the percentage of log lines where the predicted BIO tag sequence exactly matches the ground-truth sequence derived from LogHub templates.
+
+**Entity-level F1** follows the standard span-based evaluation (CoNLL style):
+- **Precision:** predicted entity spans that match a ground-truth span / all predicted spans
+- **Recall:** ground-truth spans correctly identified / all ground-truth spans
+- **F1:** harmonic mean of Precision and Recall
+
+**Confidence threshold (0.90):** logs where the chunker's average per-token softmax max-probability falls below 0.90 are routed to the Siamese fallback. At 99.96% average confidence on the test domain, the fallback is rarely triggered on seen domains.
+
+**Similarity threshold (0.85):** the minimum cosine similarity between a log embedding and the closest template vector for the Siamese resolver to declare a `RESOLVED` match. Logs below this threshold are marked `UNKNOWN`.
