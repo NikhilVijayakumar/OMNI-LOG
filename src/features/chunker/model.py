@@ -72,14 +72,27 @@ class BiLSTM_CRF(nn.Module):
         # Returns a list of lists (best path for each sequence in batch)
         return self.crf.viterbi_decode(features, mask=mask)
 
-
     def get_confidence(self, sentence, mask=None):
         """
-        Calculates the normalized path score.
-        High score = high confidence in the sequence structure.
+        Calculates confidence using per-token softmax max-probability.
+        Averages the max probability across all real (non-padding) tokens.
+        Returns a tensor of shape [batch] with values in [0, 1].
         """
         features = self._get_lstm_features(sentence)
-        # The raw score of the best path
-        best_path_scores = self.crf.compute_partitions(features, mask=mask)
-        # Normalize by sequence length to get a 'confidence' proxy
-        return best_path_scores / sentence.size(1)
+        probs = torch.softmax(features, dim=-1)
+        max_probs, _ = torch.max(probs, dim=-1)
+        if mask is not None:
+            mask_f = mask.float()
+            conf = (max_probs * mask_f).sum(dim=1) / mask_f.sum(dim=1).clamp(min=1)
+        else:
+            conf = max_probs.mean(dim=1)
+        return conf
+
+    def predict(self, sentence, mask=None):
+        """
+        Used during PIPELINE EXECUTION.
+        Returns both the decoded tags and the confidence score.
+        """
+        tags = self.decode(sentence, mask)
+        confidence = self.get_confidence(sentence, mask)
+        return tags, confidence

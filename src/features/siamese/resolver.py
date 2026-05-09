@@ -1,6 +1,6 @@
 import torch
 import torch.nn.functional as F
-from src.features.data.processor import LogProcessor
+from features.data.processor import LogProcessor
 
 
 class TemplateResolver:
@@ -48,7 +48,7 @@ class TemplateResolver:
 
         self.template_vectors = torch.cat(vectors, dim=0)  # [N, Hidden_Dim]
         self.template_metadata = {"ids": ids, "texts": texts}
-        print(f"✅ Template Library built with {len(ids)} vectors.")
+        print(f"[OK] Template Library built with {len(ids)} vectors.")
 
     def resolve(self, log_line):
         """

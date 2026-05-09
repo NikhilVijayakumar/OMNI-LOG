@@ -3,6 +3,12 @@ import torch.optim as optim
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 import mlflow
+import random
+import numpy as np
+
+torch.manual_seed(42)
+np.random.seed(42)
+random.seed(42)
 
 
 class TripletLogDataset(Dataset):
@@ -23,10 +29,8 @@ class TripletLogDataset(Dataset):
         anchor_text = self.logs[idx]
         pos_text = self.templates[idx]
 
-        # Hard/Random Negative Mining: Pick a template that ISN'T the correct one
-        neg_text = pos_text
-        while neg_text == pos_text:
-            neg_text = torch.utils.data.random_split(self.unique_templates, [1, len(self.unique_templates) - 1])[0][0]
+        # Random Negative Mining: Pick a template that ISN'T the correct one
+        neg_text = random.choice([t for t in self.unique_templates if t != pos_text])
 
         # Numericalize all three
         a_ids, _, a_len = self.processor.numericalize(self.processor.tokenize(anchor_text), [])

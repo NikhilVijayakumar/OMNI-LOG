@@ -39,6 +39,7 @@ class JSONWriter:
         self.output_path = output_path
         self.write_batch_size = write_batch_size
         self.buffer = []
+        self.records_written = 0
 
         # Ensure directory exists
         os.makedirs(os.path.dirname(self.output_path), exist_ok=True)
@@ -59,18 +60,17 @@ class JSONWriter:
             return
 
         with open(self.output_path, 'a') as f:
-            for i, record in enumerate(self.buffer):
+            for record in self.buffer:
                 json_str = json.dumps(record, indent=2)
-                # Add comma if not the very first record (this is simplified logic)
-                f.write(json_str + ",\n")
+                prefix = ",\n" if self.records_written > 0 else ""
+                f.write(prefix + json_str)
+                self.records_written += 1
 
         self.buffer = []
 
     def close(self):
         """Finalizes the JSON file structure."""
         self.flush()
-        # Note: In a real production system, you'd handle the trailing comma
-        # more cleanly, but this works for valid line-delimited JSON.
         with open(self.output_path, 'a') as f:
-            f.write("\n]")  # End of JSON array
-        print(f"✅ All structured logs saved to {self.output_path}")
+            f.write("\n]")
+        print(f"[OK] All structured logs saved to {self.output_path}")

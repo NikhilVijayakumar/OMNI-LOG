@@ -1,7 +1,7 @@
 import torch
-from src.features.data.loader import get_dataloader
-from src.features.data.processor import LogProcessor
-from src.features.data.constants import DOMAIN_TO_IDX, TAG_MAP
+from features.data.loader import get_dataloader
+from features.data.processor import LogProcessor
+from features.data.constants import DOMAIN_TO_IDX, TAG_MAP
 
 
 def test_tier1_semantic_tagging():
@@ -21,7 +21,7 @@ def test_tier1_semantic_tagging():
     assert "B-TIME" in tags, "Failed to identify Hadoop Timestamp"
     assert "B-LEVEL" in tags, "Failed to identify Log Level"
     assert tags[-1] == "B-PARAM", f"Failed to tag parameter <*>. Got {tags[-1]}"
-    print("✅ Hadoop Profile tagging passed.")
+    print("[OK] Hadoop Profile tagging passed.")
 
 
 def test_tier2_vocab_and_padding():
@@ -39,7 +39,7 @@ def test_tier2_vocab_and_padding():
     assert token_ids[1] == 1, "UNK mapping failed"
     assert token_ids[2] == 0, "PAD mapping failed"
     assert length == 2, "Original length tracking failed"
-    print("✅ Vocabulary and padding logic passed.")
+    print("[OK] Vocabulary and padding logic passed.")
 
 
 def test_tier3_dataloader_integration(data_path):
@@ -58,9 +58,9 @@ def test_tier3_dataloader_integration(data_path):
         print(f"Sample Batch Domains: {unique_domains}")
         assert len(batch['domain']) == 8, "Batch size mismatch"
 
-        print(f"✅ DataLoader passed. Vocab Size: {len(proc.vocab)}")
+        print(f"[OK] DataLoader passed. Vocab Size: {len(proc.vocab)}")
     except Exception as e:
-        print(f"❌ DataLoader failed: {e}")
+        print(f"[ERROR] DataLoader failed: {e}")
 
 
 if __name__ == "__main__":
@@ -68,4 +68,4 @@ if __name__ == "__main__":
     test_tier1_semantic_tagging()
     test_tier2_vocab_and_padding()
     test_tier3_dataloader_integration(data_path="data/logs")
-    print("\n🚀 All Module 1 Verifications Passed!")
+    print("\n[OK] All Module 1 Verifications Passed!")

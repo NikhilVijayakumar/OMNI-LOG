@@ -1,7 +1,7 @@
 # test_model.py
 import torch
-from src.features.chunker.model import BiLSTM_CRF
-from src.features.data.constants import TAG_MAP
+from features.chunker.model import BiLSTM_CRF
+from features.data.constants import TAG_MAP
 
 # Mock dimensions
 VOCAB_SIZE = 1000

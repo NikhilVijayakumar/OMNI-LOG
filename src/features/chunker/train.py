@@ -3,10 +3,16 @@ import torch.optim as optim
 from tqdm import tqdm
 import mlflow
 import os
+import numpy as np
+import random
 
-from src.features.chunker.model import BiLSTM_CRF
-from src.features.data.loader import get_dataloader
-from src.features.data.constants import TAG_MAP, DEFAULT_MAX_SEQ_LEN
+torch.manual_seed(42)
+np.random.seed(42)
+random.seed(42)
+
+from features.chunker.model import BiLSTM_CRF
+from features.data.loader import get_dataloader
+from features.data.constants import TAG_MAP, DEFAULT_MAX_SEQ_LEN
 
 # Hyperparameters
 EMBEDDING_DIM = 128
@@ -29,8 +35,17 @@ def train_model(data_dir, model_save_path, config=None):
         embedding_dim, hidden_dim, lr, epochs, batch_size = EMBEDDING_DIM, HIDDEN_DIM, LEARNING_RATE, EPOCHS, BATCH_SIZE
 
     # 2. Setup Data & Model
-    train_loader, processor = get_dataloader(data_dir, batch_size=batch_size)
+    full_loader, processor = get_dataloader(data_dir, batch_size=batch_size)
     vocab_size = len(processor.vocab)
+    full_dataset = full_loader.dataset
+
+    # 80/20 Split
+    train_size = int(0.8 * len(full_dataset))
+    val_size = len(full_dataset) - train_size
+    train_dataset, val_dataset = torch.utils.data.random_split(full_dataset, [train_size, val_size])
+
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 
     model = BiLSTM_CRF(
         vocab_size=vocab_size,
@@ -64,7 +79,9 @@ def train_model(data_dir, model_save_path, config=None):
                 tokens = batch['tokens'].to(DEVICE)
                 tags = batch['tags'].to(DEVICE)
                 # Create mask: 1 for real tokens, 0 for <PAD>
+                # TorchCRF requires the first timestep to always be unmasked
                 mask = (tokens != 0)
+                mask[:, 0] = True
 
                 # Forward Pass
                 model.zero_grad()
@@ -80,7 +97,23 @@ def train_model(data_dir, model_save_path, config=None):
 
             avg_loss = total_loss / len(train_loader)
             mlflow.log_metric("train_loss", avg_loss, step=epoch)
-            print(f"Epoch {epoch + 1} Average Loss: {avg_loss:.4f}")
+
+            # Validation Phase
+            model.eval()
+            total_val_loss = 0
+            with torch.no_grad():
+                for batch in val_loader:
+                    tokens = batch['tokens'].to(DEVICE)
+                    tags = batch['tags'].to(DEVICE)
+                    mask = (tokens != 0)
+                    mask[:, 0] = True
+                    val_loss = model(tokens, tags, mask=mask)
+                    total_val_loss += val_loss.item()
+            
+            avg_val_loss = total_val_loss / len(val_loader)
+            mlflow.log_metric("val_loss", avg_val_loss, step=epoch)
+
+            print(f"Epoch {epoch + 1} Avg Train Loss: {avg_loss:.4f} | Avg Val Loss: {avg_val_loss:.4f}")
 
         # 3. Save Artifacts
         os.makedirs(os.path.dirname(model_save_path), exist_ok=True)

@@ -226,3 +226,10 @@ __marimo__/
 /output/processed/vocab.pth
 /mlflow.db
 /.idea/inspectionProfiles/Project_Default.xml
+/docs/audit/
+/docs/delivery/
+/mlruns/1/721f275c1d4a418c816f22afa0e3aa4f/artifacts/best_model.pth
+/output/
+/docs/ppt/initial/Pipeline for Multi-Category Log Structuring and Configurable JSON Batching.pdf
+/docs/ppt/
+/.claude/settings.local.json

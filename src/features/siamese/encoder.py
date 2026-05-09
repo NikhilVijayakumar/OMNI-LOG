@@ -4,7 +4,7 @@ import torch.nn.functional as F
 
 
 class LogEncoder(nn.Module):
-    def __init__(self, vocab_size, embedding_dim, hidden_dim, dropout=0.1):
+    def __init__(self, vocab_size, embedding_dim, hidden_dim, num_layers=1, dropout=0.1):
         """
         OMNI-LOG Siamese Encoder
         Transforms a log sequence into a fixed-size semantic vector.
@@ -18,9 +18,10 @@ class LogEncoder(nn.Module):
         self.lstm = nn.LSTM(
             embedding_dim,
             hidden_dim // 2,
+            num_layers=num_layers,
             bidirectional=True,
             batch_first=True,
-            dropout=dropout
+            dropout=dropout if num_layers > 1 else 0
         )
 
         self.dropout = nn.Dropout(dropout)

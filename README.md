@@ -180,34 +180,111 @@ Batching parameters allow tuning for:
 pip install -e .
 ```
 
+> **Note for new contributors:** The `output/` directory (models, vocab, JSON results) is **gitignored** and will not exist after a fresh clone. You must run the training pipeline first to generate all artifacts before running inference.
+
 ---
 
-## ▶️ Usage (Pipeline Execution)
+## ▶️ Quick Demo (Inference on a Log File)
+
+Use `demo.py` to run the trained pipeline against any log file. It automatically loads the trained models from `output/` and writes structured JSON.
 
 ```bash
-python src/features/engine/pipeline.py \
-    --input data/logs/Hadoop_2k.log \
-    --batch_size 256 \
-    --write_batch_size 500 \
-    --output output.json
+# Run on any specific log file
+python demo.py --input data/logs/Hadoop_2k.log
+
+# Run on a different domain with a custom output path
+python demo.py --input data/logs/Linux_2k.log --output output/json/linux_structured.json
+
+# Run on the first log file found automatically
+python demo.py
+```
+
+If trained models are not found in `output/`, `demo.py` will trigger the full training pipeline automatically.
+
+**Output format** (`output/json/<domain>_structured.json`):
+
+```json
+{
+    "raw": "2015-10-18 18:01:48 INFO NameSystem: completeFile: blk_-160",
+    "structured": {
+        "time": "2015-10-18",
+        "level": "INFO",
+        "component": null,
+        "params": ["blk_-160"]
+    },
+    "metadata": {
+        "method": "Bi-LSTM-CRF",
+        "confidence": 0.996,
+        "status": "SUCCESS"
+    }
+}
 ```
 
 ---
 
-## 🧪 Training (Chunker)
+## ⚙️ Full Training Pipeline
+
+To train from scratch (data → train → inference):
+
+**Step 1:** Set the phase in `src/main/config/config.yaml`:
+
+```yaml
+pipeline:
+  phase: "all"   # options: "data" | "train" | "inference" | "all"
+```
+
+**Step 2:** Run from the project root:
 
 ```bash
-python src/features/chunker/train.py \
-    --data_dir data/processed \
-    --model_dir models/chunker \
-    --use_crf True
+python src/main/main.py
+```
+
+### Generated Artifacts
+
+After a successful run the following files are created (all gitignored):
+
+```
+output/
+├── processed/
+│   └── vocab.pth                        ← Universal vocabulary (17,067 tokens)
+├── models/
+│   └── chunker/
+│       ├── best_model.pth               ← Trained BiLSTM-CRF (~9.7 MB, 2.4M params)
+│       └── siamese_encoder.pth          ← Trained Siamese encoder (~9.3 MB)
+└── json/
+    └── structured_logs.json             ← Structured output from inference phase
+```
+
+### Running Individual Phases
+
+```yaml
+phase: "data"       # Build vocab only → output/processed/vocab.pth
+phase: "train"      # Train models only (requires vocab) → output/models/
+phase: "inference"  # Run inference only (requires trained models) → output/json/
+phase: "all"        # Full pipeline end-to-end
+```
+
+---
+
+## 🧪 Running Tests
+
+```bash
+pytest tests/
+```
+
+Individual test files:
+
+```bash
+pytest tests/unit/siamese/test_hybrid.py -v    # Hybrid routing logic
+pytest tests/unit/chunker/test_model.py -v     # BiLSTM-CRF model
+pytest tests/integration/test_end_to_end.py -v # Full pipeline
 ```
 
 ---
 
 ## 📈 Experiment Tracking
 
-* **MLflow** → hyperparameter tuning & performance tracking
+* **MLflow** → hyperparameter tuning & performance tracking (runs saved to `mlruns/`)
 * **DVC** → dataset versioning
 
 ---

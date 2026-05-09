@@ -34,7 +34,7 @@ class LogProcessor:
         """Standardized regex tokenization for OMNI-LOG."""
         return self.token_pattern.findall(line)
 
-    def generate_bio_tags(self, tokens, template_tokens):
+    def generate_bio_tags(self, tokens, template_tokens, domain: str = None):
         """
         Aligns tokens with LogHub templates to generate BIO tags.
         Templates use '<*>' to represent parameters.

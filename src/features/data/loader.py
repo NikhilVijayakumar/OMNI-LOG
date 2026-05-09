@@ -74,29 +74,57 @@ def get_dataloader(data_dir, batch_size=32, max_seq_len=64):
                 possible_content = ['Content', 'LogMessage', 'OriginalLog']
                 content_col = next((c for c in possible_content if c in df.columns), None)
 
-                if not content_col:
+                if content_col:
+                    template_col = 'EventTemplate' if 'EventTemplate' in df.columns else df.columns[-1]
+                    print(f"--- Processing {domain}: Content='{content_col}', Template='{template_col}'")
+                    logs = df[content_col].astype(str).tolist()
+                    templates = df[template_col].astype(str).tolist()
+                else:
                     # Filter out the known non-content columns
                     other_cols = [c for c in df.columns if c.strip() not in ['EventId', 'LineId', 'EventTemplate']]
 
                     if other_cols:
                         content_col = other_cols[0]
+                        template_col = 'EventTemplate' if 'EventTemplate' in df.columns else df.columns[-1]
+                        print(f"--- Processing {domain}: Content='{content_col}', Template='{template_col}'")
+                        logs = df[content_col].astype(str).tolist()
+                        templates = df[template_col].astype(str).tolist()
                     else:
-                        # Emergency Fallback: If only EventId/Template exist,
-                        # we have to use EventTemplate as the content to avoid a crash.
-                        print(f"⚠️ Warning: No raw content column found in {domain}. Columns: {list(df.columns)}")
-                        content_col = 'EventTemplate'
-
-                        # 2. Identify the 'Templates' column
-                template_col = 'EventTemplate' if 'EventTemplate' in df.columns else df.columns[-1]
-
-                print(f"--- Processing {domain}: Content='{content_col}', Template='{template_col}'")
-
-                logs = df[content_col].astype(str).tolist()
-                templates = df[template_col].astype(str).tolist()
+                        # Match 2000 log lines to unique templates using token overlap
+                        print(f"--- Processing {domain}: Token-overlap template matching")
+                        with open(log_file, 'r', encoding='utf-8', errors='ignore') as f:
+                            raw_logs = [line.strip() for line in f.readlines()]
+                        
+                        template_col = 'EventTemplate' if 'EventTemplate' in df.columns else df.columns[-1]
+                        template_list = df[template_col].astype(str).tolist()
+                        
+                        # Pre-tokenize templates and build static token sets
+                        temp_tokens_list = [processor.tokenize(t) for t in template_list]
+                        temp_static_sets = []
+                        for tt in temp_tokens_list:
+                            static = [t for t in tt if t != '<*' and t != '*>' and t != '<*']
+                            temp_static_sets.append(set(static))
+                        
+                        logs = []
+                        templates = []
+                        raw_logs = [l for l in raw_logs if l.strip()]
+                        for raw_log in raw_logs:
+                            log_tokens = set(processor.tokenize(raw_log))
+                            best_score = -1
+                            best_temp_idx = 0
+                            for i, static_set in enumerate(temp_static_sets):
+                                if not static_set:
+                                    continue
+                                score = len(log_tokens & static_set) / len(static_set)
+                                if score > best_score:
+                                    best_score = score
+                                    best_temp_idx = i
+                            logs.append(raw_log)
+                            templates.append(template_list[best_temp_idx])
             else:
                 # Fallback: Load raw log file
                 with open(log_file, 'r', encoding='utf-8', errors='ignore') as f:
-                    logs = [line.strip() for line in f.readlines()]
+                    logs = [line.strip() for line in f if line.strip()]
                 templates = logs  # Use logs as templates (no PARAM tags generated)
 
             # Pre-tokenize for vocab
