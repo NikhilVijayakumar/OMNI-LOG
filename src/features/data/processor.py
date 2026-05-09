@@ -41,26 +41,26 @@ class LogProcessor:
         """
         tags = ["O"] * len(tokens)
         months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"]
+        _PUNCT = {":", "[", "]", "(", ")", "=", ",", "-", "|"}
 
         # 1. Heuristics for Time and Level
         for i, token in enumerate(tokens):
-            # Time Heuristics:
-            # - ISO-like or LogHub timestamps: 2015-10-18, 18:01:47,978, 081109
-            # - Syslog months: Jun, July...
+            # Time: ISO dates, numeric timestamps, time-of-day, syslog months
             if (re.match(r'^\d{2,4}[-:/]\d{2}[-:/]\d{2,4}$|^\d{6,}$|^\d{2}:\d{2}:\d{2}', token) or
-                token.upper()[:3] in months):
+                    token.upper()[:3] in months):
                 tags[i] = "B-TIME" if (i == 0 or "TIME" not in tags[i - 1]) else "I-TIME"
-            # Level Heuristics:
-            elif token.upper() in ["INFO", "DEBUG", "WARN", "ERROR", "FATAL", "SEVERE", "V", "D", "I", "W", "E"]:
+            # Extend I-TIME to adjacent time-component tokens (e.g. HH after YYYY-MM-DD)
+            elif i > 0 and "TIME" in tags[i - 1] and re.match(r'^\d{2}$', token):
+                tags[i] = "I-TIME"
+            # Level: full words and single-letter Android logcat levels
+            elif token.upper() in ["INFO", "DEBUG", "WARN", "WARNING", "ERROR", "FATAL", "SEVERE",
+                                    "NOTICE", "TRACE", "V", "D", "I", "W", "E", "F"]:
                 tags[i] = "B-LEVEL"
 
         # 2. Template Alignment for Parameters (Robust 1:N Matching)
-        # We align tokens index (i) and template tokens index (j)
         i, j = 0, 0
         while i < len(tokens) and j < len(template_tokens):
             if template_tokens[j] == "<*>":
-                # Parameter found. Tag until we find a match for the NEXT template token.
-                # If it's the last template token, tag everything else as PARAM.
                 tags[i] = "B-PARAM"
                 i += 1
                 j_next = j + 1
@@ -70,15 +70,26 @@ class LogProcessor:
                         tags[i] = "I-PARAM"
                         i += 1
                 else:
-                    # Last token is <*>, consume everything
                     while i < len(tokens):
                         tags[i] = "I-PARAM"
                         i += 1
-                j += 1 # Move to next template token after matching <*>
+                j += 1
             else:
-                # Static token alignment - just skip as it's already 'O' or tagged by heuristics
                 i += 1
                 j += 1
+
+        # 3. Tag COMPONENT: O-tagged tokens between B-LEVEL and B-PARAM
+        # In all LogHub formats the component (class name, app name, node) lives in this gap.
+        level_pos = next((k for k, t in enumerate(tags) if t == "B-LEVEL"), None)
+        first_param_pos = next((k for k, t in enumerate(tags) if t == "B-PARAM"), None)
+
+        if level_pos is not None:
+            end = first_param_pos if first_param_pos is not None else len(tokens)
+            first_comp = True
+            for k in range(level_pos + 1, end):
+                if tags[k] == "O" and tokens[k] not in _PUNCT:
+                    tags[k] = "B-COMPONENT" if first_comp else "I-COMPONENT"
+                    first_comp = False
 
         return tags
 

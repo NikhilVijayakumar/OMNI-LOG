@@ -310,3 +310,7 @@ pytest tests/integration/test_end_to_end.py -v # Full pipeline
 * Siamese Networks for Metric Learning
 
 ---
+
+
+ python demo.py --input data/logs/HealthApp_2k.log --output output/json/healthApp_structured.json
+

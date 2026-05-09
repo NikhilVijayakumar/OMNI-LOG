@@ -1,6 +1,6 @@
 [project]
 name = "omni-log"
-version = "1.0.0"
+version = "1.0.2"
 description = "OMNI-LOG is a cross-domain NLP pipeline for structuring system logs into standardized JSON using BiLSTM-CRF and Siamese networks."
 readme = "README.md"
 requires-python = ">=3.12"
